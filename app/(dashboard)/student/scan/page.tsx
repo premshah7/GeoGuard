@@ -46,6 +46,18 @@ export default function StudentScanPage() {
         }
     };
 
+    const testCamera = async () => {
+        try {
+            setMessage("Requesting raw camera access...");
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setMessage("Success! Camera access granted. " + stream.id);
+            // Stop tracks to release
+            stream.getTracks().forEach(t => t.stop());
+        } catch (err) {
+            setMessage("Raw Access Failed: " + (err as Error).name + " - " + (err as Error).message);
+        }
+    };
+
     if (isFingerprintLoading) {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
@@ -96,6 +108,14 @@ export default function StudentScanPage() {
                                 {message}
                             </div>
                         )}
+                        <div className="text-center">
+                            <button
+                                onClick={testCamera}
+                                className="text-xs text-blue-400 underline mb-4"
+                            >
+                                Test Camera Permissions
+                            </button>
+                        </div>
                         <QRScanner
                             onScan={handleScan}
                             onError={(err) => setMessage(err)}

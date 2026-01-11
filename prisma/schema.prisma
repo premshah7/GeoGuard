@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+
+  student Student?
+  faculty Faculty?
+}
+
+model Student {
+  id                     Int     @id @default(autoincrement())
+  rollNumber             String  @unique
+  enrollmentNo           String  @unique
+  userId                 Int     @unique
+  deviceHash             String?
+  isDeviceResetRequested Boolean @default(false)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendances   Attendance[]
+  proxyAttempts ProxyAttempt[]
+}
+
+model Faculty {
+  id     Int @id @default(autoincrement())
+  userId Int @unique
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects Subject[]
+}
+
+model Subject {
+  id            Int    @id @default(autoincrement())
+  name          String
+  facultyId     Int
+  totalStudents Int    @default(60)
+
+  faculty  Faculty   @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+  sessions Session[]
+}
+
+model Session {
+  id        Int       @id @default(autoincrement())
+  subjectId Int
+  isActive  Boolean   @default(true)
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+
+  // Keeping these for potential future token tracking if needed, but for now the code relies on dynamic generation.
+  // Actually, standardizing on the fields used in the code:
+  // created/updatedAt are good practice too.
+
+  subject       Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  attendances   Attendance[]
+  proxyAttempts ProxyAttempt[]
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  sessionId Int
+  timestamp DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model ProxyAttempt {
+  id            Int      @id @default(autoincrement())
+  studentId     Int
+  sessionId     Int
+  attemptedHash String
+  timestamp     DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model SystemSettings {
+  id               Int     @id @default(autoincrement())
+  allowedIpPrefix  String  @default("") // E.g., "192.168.1." or "203.0.113.5"
+  isIpCheckEnabled Boolean @default(false)
+}

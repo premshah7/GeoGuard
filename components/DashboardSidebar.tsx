@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
+
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
     CalendarCheck,
@@ -13,7 +15,9 @@ import {
     HelpCircle,
     ShieldAlert,
     Settings,
-    WifiOff
+    WifiOff,
+    Menu,
+    X
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -28,6 +32,13 @@ interface SidebarProps {
 
 export default function DashboardSidebar({ user, role }: SidebarProps) {
     const pathname = usePathname();
+    const router = useRouter();
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleSignOut = async () => {
+        await signOut({ redirect: false });
+        router.push("/signin");
+    };
 
     let menuItems = [];
     let portalLabel = "";
@@ -63,13 +74,15 @@ export default function DashboardSidebar({ user, role }: SidebarProps) {
             break;
     }
 
-    return (
-        <aside className="hidden md:flex flex-col w-72 h-[calc(100vh-2rem)] m-4 rounded-3xl bg-slate-900 text-white shadow-2xl relative overflow-hidden ring-1 ring-white/10 shrink-0">
+    const toggleSidebar = () => setIsOpen(!isOpen);
+
+    const SidebarContent = () => (
+        <>
             {/* Background Decoration */}
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/10 via-slate-900 to-slate-900 pointer-events-none" />
 
             {/* Header */}
-            <div className="p-8 pb-4 relative z-10">
+            <div className="p-8 pb-4 relative z-10 flex justify-between items-center">
                 <div className="flex items-center gap-3 mb-1">
                     <div className="p-2.5 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg shadow-blue-900/40">
                         <ShieldCheck size={26} className="text-white" />
@@ -79,6 +92,13 @@ export default function DashboardSidebar({ user, role }: SidebarProps) {
                         <p className="text-[10px] text-blue-200 uppercase tracking-widest font-semibold opacity-80">{portalLabel}</p>
                     </div>
                 </div>
+                {/* Mobile Close Button */}
+                <button
+                    onClick={toggleSidebar}
+                    className="md:hidden p-2 text-slate-400 hover:text-white"
+                >
+                    <X size={24} />
+                </button>
             </div>
 
             {/* User Profile (moved to top) */}
@@ -92,7 +112,7 @@ export default function DashboardSidebar({ user, role }: SidebarProps) {
                         <p className="text-xs text-slate-500 truncate group-hover:text-slate-400 transition-colors">{user.email}</p>
                     </div>
                     <button
-                        onClick={() => signOut({ callbackUrl: "/signin" })}
+                        onClick={handleSignOut}
                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                         title="Logout"
                     >
@@ -110,6 +130,7 @@ export default function DashboardSidebar({ user, role }: SidebarProps) {
                         <Link
                             key={item.href}
                             href={item.href}
+                            onClick={() => setIsOpen(false)} // Close on navigation
                             className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative overflow-hidden ${isActive
                                 ? "bg-blue-600/90 text-white shadow-lg shadow-blue-900/30"
                                 : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
@@ -125,6 +146,38 @@ export default function DashboardSidebar({ user, role }: SidebarProps) {
                     );
                 })}
             </nav>
-        </aside>
+        </>
+    );
+
+    return (
+        <>
+            {/* Mobile Toggle Button */}
+            <div className="md:hidden fixed top-4 left-4 z-40 bg-slate-900 p-2 rounded-xl shadow-lg border border-slate-800">
+                <button onClick={toggleSidebar}>
+                    <Menu className="text-white" />
+                </button>
+            </div>
+
+            {/* Mobile Overlay */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
+
+            {/* Sidebar Container */}
+            <aside
+                className={`
+                    fixed md:relative top-0 left-0 h-full md:h-[calc(100vh-2rem)] w-72 
+                    bg-slate-900 text-white shadow-2xl overflow-hidden
+                    md:m-4 md:rounded-3xl border-r md:border border-white/10
+                    transform transition-transform duration-300 ease-in-out z-50
+                    ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+                `}
+            >
+                <SidebarContent />
+            </aside>
+        </>
     );
 }

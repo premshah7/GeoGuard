@@ -33,11 +33,18 @@ export default function DeviceRegistration({ existingHash, isResetRequested }: {
         }
     };
 
+    // Sync state with props when they change (e.g. after router.refresh())
+    useEffect(() => {
+        setRequestPending(isResetRequested);
+    }, [isResetRequested]);
+
+    const router = useRouter();
+
     // Auto-refresh logic to check for Admin approval
-    const router = useRouter(); // Import this
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (requestPending) {
+            // Poll frequently (3s) while waiting for approval
             interval = setInterval(() => {
                 router.refresh();
             }, 3000);

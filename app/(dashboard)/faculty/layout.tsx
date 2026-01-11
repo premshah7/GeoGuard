@@ -26,8 +26,8 @@ export default async function FacultyLayout({
     return (
         <div className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden font-sans">
             <DashboardSidebar user={session.user} role="FACULTY" />
-            <main className="flex-1 overflow-y-auto relative h-full">
-                <div className="p-8 pb-32 max-w-7xl mx-auto h-full">
+            <main className="flex-1 overflow-y-auto relative h-full w-full">
+                <div className="p-4 pt-16 md:p-8 pb-32 max-w-7xl mx-auto h-full">
                     {children}
                 </div>
             </main>

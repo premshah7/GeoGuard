@@ -3,10 +3,16 @@
 import Link from "next/link";
 import { LayoutDashboard, Home, Scan, Settings, LogOut, QrCode } from "lucide-react";
 import { signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function StudentBottomNav() {
     const pathname = usePathname();
+    const router = useRouter();
+
+    const handleSignOut = async () => {
+        await signOut({ redirect: false });
+        router.push("/signin");
+    };
 
     const isActive = (path: string) => pathname === path;
 
@@ -34,7 +40,7 @@ export default function StudentBottomNav() {
                 </Link>
 
                 <button
-                    onClick={() => signOut({ callbackUrl: "/signin" })}
+                    onClick={handleSignOut}
                     className="flex flex-col items-center justify-center w-full h-full text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
                 >
                     <LogOut size={20} className="mb-1" />

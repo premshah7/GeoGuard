@@ -250,7 +250,7 @@ export default function UserList(props: GenericUserListProps) {
                                 if ((e.target as HTMLElement).closest('button')) return;
                                 toggleSelect(item.userId, e);
                             }}
-                            className={`p-4 flex justify-between items-center transition cursor-pointer select-none ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+                            className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition cursor-pointer select-none ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                         >
                             <div className="flex items-center gap-4">
                                 <input
@@ -275,7 +275,7 @@ export default function UserList(props: GenericUserListProps) {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100 dark:border-gray-700">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setEditingUser((item.original as any).user); }}
                                     className="text-blue-500 hover:text-blue-700 p-2 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"

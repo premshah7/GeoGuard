@@ -75,8 +75,8 @@ export default async function FacultyDashboard() {
 
                     {/* Quick Active Session Access (Minimal) */}
                     {faculty.subjects.some(s => s.sessions.some(sess => sess.isActive)) && (
-                        <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 p-4 rounded-xl flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                        <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
                                 <span className="relative flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
@@ -86,7 +86,7 @@ export default async function FacultyDashboard() {
                                     <p className="text-xs text-green-700 dark:text-green-300">You have a class currently running.</p>
                                 </div>
                             </div>
-                            <Link href="/faculty/subjects" className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                            <Link href="/faculty/subjects" className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto text-center">
                                 View Sessions
                             </Link>
                         </div>

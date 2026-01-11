@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 
 interface QRScannerProps {
     onScan: (data: string) => void;
-    onError?: (error: unknown) => void;
+    onError?: (error: string) => void;
 }
 
 export default function QRScanner({ onScan, onError }: QRScannerProps) {
@@ -31,8 +31,24 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
             <Scanner
                 onScan={handleScan}
                 onError={(error) => {
-                    console.error(error);
-                    if (onError) onError(error);
+                    console.error("Scanner Error:", error);
+                    let errorMessage = "Camera error: " + (error as Error).message;
+
+                    // Common camera error mapping
+                    const errStr = (error as any)?.name || (error as any)?.toString() || "";
+                    if (errStr.includes("NotAllowedError") || errStr.includes("PermissionDeniedError")) {
+                        errorMessage = "Camera access denied. Please allow camera permissions in your browser settings.";
+                    } else if (errStr.includes("NotFoundError") || errStr.includes("DevicesNotFoundError")) {
+                        errorMessage = "No camera found on this device.";
+                    } else if (errStr.includes("NotReadableError") || errStr.includes("TrackStartError")) {
+                        errorMessage = "Camera is in use by another application.";
+                    } else if (errStr.includes("OverconstrainedError")) {
+                        errorMessage = "Camera settings not supported.";
+                    } else if (errStr.includes("StreamApiNotSupportedError")) {
+                        errorMessage = "Camera access not supported in this browser.";
+                    }
+
+                    if (onError) onError(errorMessage);
                 }}
                 // components={{
                 //     audio: false,

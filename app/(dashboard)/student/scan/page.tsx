@@ -18,6 +18,7 @@ export default function StudentScanPage() {
 
     const handleScan = async (token: string) => {
         setStatus("processing");
+        setMessage("");
 
         try {
             const response = await fetch("/api/attendance/mark", {
@@ -90,7 +91,15 @@ export default function StudentScanPage() {
                             <h2 className="text-2xl font-bold text-white">Scan QR Code</h2>
                             <p className="text-gray-400">Point your camera at the session QR code projected by the faculty.</p>
                         </div>
-                        <QRScanner onScan={handleScan} />
+                        {message && (
+                            <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-200 text-sm text-center">
+                                {message}
+                            </div>
+                        )}
+                        <QRScanner
+                            onScan={handleScan}
+                            onError={(err) => setMessage(err)}
+                        />
 
                     </div>
                 )}

@@ -91,7 +91,7 @@ export default function StudentScanPage() {
                 <Link href="/student" className="text-gray-400 hover:text-white transition-colors p-2 -ml-2">
                     <ArrowLeft size={24} />
                 </Link>
-                <h1 className="text-lg font-semibold text-white ml-2">Scan Attendance</h1>
+                <h1 className="text-lg font-semibold text-white ml-2">Scan Attendance (v2.0)</h1>
             </header>
 
             {/* Content */}

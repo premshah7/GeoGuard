@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ShieldCheck, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
@@ -64,8 +65,14 @@ export default function LoginPage() {
 
             <div className="relative z-10 w-full max-w-md p-8 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl shadow-2xl">
                 <div className="flex flex-col items-center mb-8">
-                    <div className="p-3 bg-blue-600 rounded-full shadow-lg shadow-blue-600/30 mb-4">
-                        <ShieldCheck className="text-white" size={32} />
+                    <div className="relative w-20 h-20 mb-4 rounded-2xl overflow-hidden shadow-2xl shadow-blue-600/20 border border-white/10">
+                        <Image
+                            src="/logo.png"
+                            alt="GeoGuard Logo"
+                            fill
+                            className="object-cover"
+                            priority
+                        />
                     </div>
                     <h1 className="text-3xl font-bold text-white tracking-tight">GeoGuard</h1>
                     <p className="text-gray-300 mt-2 text-center text-sm">Secure Attendance Management System</p>

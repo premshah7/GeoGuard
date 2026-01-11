@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
     LayoutDashboard,
@@ -84,8 +85,13 @@ export default function DashboardSidebar({ user, role }: SidebarProps) {
             {/* Header */}
             <div className="p-8 pb-4 relative z-10 flex justify-between items-center">
                 <div className="flex items-center gap-3 mb-1">
-                    <div className="p-2.5 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg shadow-blue-900/40">
-                        <ShieldCheck size={26} className="text-white" />
+                    <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-blue-900/40">
+                        <Image
+                            src="/logo.png"
+                            alt="GeoGuard Logo"
+                            fill
+                            className="object-cover"
+                        />
                     </div>
                     <div>
                         <h1 className="text-xl font-bold tracking-tight text-white">GeoGuard</h1>

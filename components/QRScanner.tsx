@@ -60,6 +60,9 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
                 styles={{
                     container: { width: '100%', aspectRatio: '1/1' }
                 }}
+                constraints={{
+                    facingMode: 'environment'
+                }}
                 allowMultiple={true} // We handle "pausing" manually via state
                 scanDelay={500}
             />

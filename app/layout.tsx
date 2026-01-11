@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GeoGuard Attendance",
   description: "Secure GPS & Device-Locked Attendance System",
-  manifest: "/manifest.json",
+
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

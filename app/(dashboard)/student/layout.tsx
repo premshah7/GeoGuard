@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { LayoutDashboard, WifiOff } from "lucide-react";
-import LogoutButton from "@/components/LogoutButton";
+
 import StudentBottomNav from "@/components/StudentBottomNav";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";

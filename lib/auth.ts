@@ -56,7 +56,7 @@ export const authOptions: NextAuthOptions = {
         }
     },
     pages: {
-        signIn: '/auth/signin', // We will create this later or user can use default for now
+        signIn: '/auth/signin',
     },
     session: {
         strategy: "jwt",

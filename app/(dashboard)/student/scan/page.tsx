@@ -49,7 +49,7 @@ export default function StudentScanPage() {
     const testCamera = async () => {
         try {
             setMessage("Requesting raw camera access...");
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: {facingMode : {exact :"environment"}} });
             setMessage("Success! Camera access granted. " + stream.id);
             // Stop tracks to release
             stream.getTracks().forEach(t => t.stop());

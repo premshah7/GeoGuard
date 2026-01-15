@@ -8,6 +8,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 });
 
 const nextConfig: NextConfig = {
+  turbopack: {}, // Silences the warning about webpack config
   async headers() {
     return [
       {

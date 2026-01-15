@@ -67,7 +67,6 @@ export default function Scanner() {
                         allowMultiple={true}
                         scanDelay={2000}
                         components={{
-                            audio: false,
                             onOff: true,
                             torch: true,
                             zoom: true,

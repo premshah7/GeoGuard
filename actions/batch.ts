@@ -27,7 +27,10 @@ export async function createBatch(name: string) {
         await prisma.batch.create({
             data: { name }
         });
-        revalidatePath("/admin/settings"); // Assuming batch management might be in settings or dedicated page
+        revalidatePath("/admin/settings");
+        revalidatePath("/admin/faculty");
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/batches");
         return { success: true };
     } catch (error) {
         console.error("Error creating batch:", error);
@@ -41,6 +44,9 @@ export async function deleteBatch(id: number) {
             where: { id }
         });
         revalidatePath("/admin/settings");
+        revalidatePath("/admin/faculty");
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/batches");
         return { success: true };
     } catch (error) {
         console.error("Error deleting batch:", error);

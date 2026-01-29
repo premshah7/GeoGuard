@@ -84,14 +84,33 @@ export async function markAttendance(token: string, deviceHash: string, deviceId
         const logHash = isStickyMatch ? `ID:${deviceId}` : `HASH:${deviceHash}`;
 
         // Log Proxy Attempt
-        await prisma.proxyAttempt.create({
-            data: {
+        // Log Proxy Attempt (Upsert Logic)
+        const existingProxy = await prisma.proxyAttempt.findFirst({
+            where: {
                 studentId: student.id,
-                sessionId: sessionId,
-                attemptedHash: logHash,
-                deviceOwnerId: deviceOwner.id
-            },
+                sessionId: sessionId
+            }
         });
+
+        if (existingProxy) {
+            await prisma.proxyAttempt.update({
+                where: { id: existingProxy.id },
+                data: {
+                    attemptedHash: logHash,
+                    deviceOwnerId: deviceOwner.id,
+                    timestamp: new Date()
+                }
+            });
+        } else {
+            await prisma.proxyAttempt.create({
+                data: {
+                    studentId: student.id,
+                    sessionId: sessionId,
+                    attemptedHash: logHash,
+                    deviceOwnerId: deviceOwner.id
+                },
+            });
+        }
 
         return { error: "Device Verification Failed! This device is linked to another account." };
     }
@@ -125,13 +144,31 @@ export async function markAttendance(token: string, deviceHash: string, deviceId
     }
 
     if (isProxy) {
-        await prisma.proxyAttempt.create({
-            data: {
+        // Upsert Proxy Attempt
+        const existingProxy = await prisma.proxyAttempt.findFirst({
+            where: {
                 studentId: student.id,
-                sessionId: sessionId,
-                attemptedHash: `HASH:${deviceHash}|ID:${deviceId}`,
-            },
+                sessionId: sessionId
+            }
         });
+
+        if (existingProxy) {
+            await prisma.proxyAttempt.update({
+                where: { id: existingProxy.id },
+                data: {
+                    attemptedHash: `HASH:${deviceHash}|ID:${deviceId}`,
+                    timestamp: new Date()
+                }
+            });
+        } else {
+            await prisma.proxyAttempt.create({
+                data: {
+                    studentId: student.id,
+                    sessionId: sessionId,
+                    attemptedHash: `HASH:${deviceHash}|ID:${deviceId}`,
+                },
+            });
+        }
         return { error: "Device Verification Failed! Please use your registered device and browser." };
     }
 

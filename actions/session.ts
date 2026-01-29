@@ -51,33 +51,34 @@ export async function endSession(sessionId: number) {
 }
 
 export async function getSessionStats(sessionId: number) {
-    const [attendanceCount, proxyCount, recentAttendance, recentProxies] = await Promise.all([
-        prisma.attendance.count({ where: { sessionId } }),
-        prisma.proxyAttempt.count({ where: { sessionId } }),
-        prisma.attendance.findMany({
-            where: { sessionId },
-            orderBy: { timestamp: 'desc' },
-            take: 50,
-            include: {
-                student: {
-                    include: { user: true }
-                }
+    // Use sequential execution to prevent DB connection exhaustion
+    const attendanceCount = await prisma.attendance.count({ where: { sessionId } });
+    const proxyCount = await prisma.proxyAttempt.count({ where: { sessionId } });
+
+    const recentAttendance = await prisma.attendance.findMany({
+        where: { sessionId },
+        orderBy: { timestamp: 'desc' },
+        take: 50,
+        include: {
+            student: {
+                include: { user: true }
             }
-        }),
-        prisma.proxyAttempt.findMany({
-            where: { sessionId },
-            orderBy: { timestamp: 'desc' },
-            take: 50,
-            include: {
-                student: {
-                    include: { user: true }
-                },
-                deviceOwner: {
-                    include: { user: true }
-                }
+        }
+    });
+
+    const recentProxies = await prisma.proxyAttempt.findMany({
+        where: { sessionId },
+        orderBy: { timestamp: 'desc' },
+        take: 50,
+        include: {
+            student: {
+                include: { user: true }
+            },
+            deviceOwner: {
+                include: { user: true }
             }
-        })
-    ]);
+        }
+    });
 
     return {
         attendanceCount,

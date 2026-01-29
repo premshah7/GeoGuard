@@ -24,14 +24,16 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
     const [loading, setLoading] = useState(false);
     const [showEndConfirm, setShowEndConfirm] = useState(false);
 
-    // Auto-End session on unmount
+    // Auto-End session on unmount - REMOVED to prevent sessions ending on refresh
+    // Faculty must explicitly click "End Session"
+    /*
     useEffect(() => {
         return () => {
-            // Use navigator.sendBeacon for reliable execution on page unload/navigation
             const blob = new Blob([JSON.stringify({ sessionId })], { type: 'application/json' });
             navigator.sendBeacon(`/api/session/${sessionId}/end`, blob);
         };
     }, [sessionId]);
+    */
 
     useEffect(() => {
         const updateToken = () => {
@@ -284,21 +286,21 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
                                         <div className="text-xs text-gray-400">
                                             {new Date(log.timestamp).toLocaleTimeString()}
                                         </div>
-                                        <div className="text-[10px] font-mono text-gray-500 mt-1 max-w-[150px] truncate" title={log.type === 'proxy' ? log.attemptedHash : log.student.deviceHash}>
+                                        <div className="mt-1 flex justify-end">
                                             {log.type === 'proxy' ? (
-                                                <div className="flex flex-col items-end">
+                                                <div className="flex flex-col items-end w-full">
                                                     {log.deviceOwner ? (
-                                                        <span className="text-red-500 font-semibold bg-red-100 px-1 rounded">
+                                                        <span className="text-red-500 font-semibold bg-red-100 px-2 py-0.5 rounded text-xs whitespace-nowrap mb-1">
                                                             Using {log.deviceOwner.user.name.split(' ')[0]}'s Device
                                                         </span>
                                                     ) : (
-                                                        <span className="text-red-500/70">
+                                                        <span className="text-red-500/70 max-w-[150px] truncate">
                                                             Hash: {log.attemptedHash?.substring(0, 8)}...
                                                         </span>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <span className="text-gray-400">
+                                                <span className="text-gray-400 max-w-[150px] truncate block">
                                                     ID: {log.student.deviceHash?.substring(0, 8)}...
                                                 </span>
                                             )}

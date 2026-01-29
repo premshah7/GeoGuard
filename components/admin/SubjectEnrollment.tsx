@@ -23,9 +23,9 @@ export default function SubjectEnrollment({ subjectId, subjectName, isOpen, onCl
     // Fetch Subject Details (Existing Enrolled Students)
     const fetchDetails = async () => {
         setLoading(true);
-        const res = await getSubjectDetails(subjectId);
-        if (res.subject) {
-            setEnrolledStudents(res.subject.students);
+        const response = await getSubjectDetails(subjectId);
+        if (response.subject) {
+            setEnrolledStudents(response.subject.students);
         }
         setLoading(false);
     };
@@ -64,8 +64,8 @@ export default function SubjectEnrollment({ subjectId, subjectName, isOpen, onCl
         setEnrolledStudents(prev => [...prev, studentToAdd]);
         setSearchResults(prev => prev.filter(s => s.id !== studentId));
 
-        const res = await assignStudentsToSubject(subjectId, [studentId]);
-        if (res.error) {
+        const response = await assignStudentsToSubject(subjectId, [studentId]);
+        if (response.error) {
             // Revert on error
             alert("Failed to add student");
             fetchDetails(); // Reload heavy
@@ -80,8 +80,8 @@ export default function SubjectEnrollment({ subjectId, subjectName, isOpen, onCl
         setEnrolledStudents(prev => prev.filter(s => s.id !== studentId));
         // Add back to search results if it matches query, essentially refresh search
 
-        const res = await removeStudentFromSubject(subjectId, studentId);
-        if (res.error) {
+        const response = await removeStudentFromSubject(subjectId, studentId);
+        if (response.error) {
             alert("Failed to remove student");
             fetchDetails();
         } else {
@@ -143,9 +143,9 @@ export default function SubjectEnrollment({ subjectId, subjectName, isOpen, onCl
         setSelectedIds(new Set());
         setLastSelectedIndex(null);
 
-        const res = await assignStudentsToSubject(subjectId, idsToAdd);
+        const response = await assignStudentsToSubject(subjectId, idsToAdd);
 
-        if (res.error) {
+        if (response.error) {
             alert("Failed to add students");
             fetchDetails(); // Revert/Reload
         }

@@ -3,7 +3,7 @@
 import { requestDeviceReset } from "@/actions/student";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 export default function RequestResetButton({ isRequested }: { isRequested: boolean }) {
     const [loading, setLoading] = useState(false);

@@ -2,7 +2,17 @@ import Scanner from "@/components/student/Scanner";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default function ScanPage() {
+import { getStudentStatus } from "@/actions/student";
+
+export default async function ScanPage() {
+    // Fetch status server-side to prevent unauthorized scanning
+    const studentStatus = await getStudentStatus();
+
+    // Default to false if fetch fails (safe fail?) - Or maybe true to block? 
+    // If null, user might not be student, but middleware checks that.
+    // If we can't get status, checking Scanner internal logic will handle deviceHash check.
+    const isResetRequested = studentStatus?.isDeviceResetRequested || false;
+
     return (
         <div className="min-h-screen bg-gray-950 p-6 flex flex-col">
             <div className="mb-6">
@@ -18,7 +28,7 @@ export default function ScanPage() {
                     <p className="text-gray-400">Point your camera at the session QR code</p>
                 </div>
 
-                <Scanner />
+                <Scanner isDeviceResetRequested={isResetRequested} />
             </div>
         </div>
     );

@@ -13,12 +13,16 @@ import {
 import { Input } from "@/components/ui/input";
 import Papa from "papaparse";
 import { toast } from "sonner";
-import { Loader2, Upload, FileSpreadsheet, FileText, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { Loader2, Upload, FileSpreadsheet, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import ColumnMappingStep from "./ColumnMappingStep";
 import { parsePdfPreview, uploadBulkUsers } from "@/actions/bulk";
 import { useRouter } from "next/navigation";
 
-export default function FlexibleUploadModal() {
+interface FlexibleUploadModalProps {
+    userType: "STUDENT" | "FACULTY";
+}
+
+export default function FlexibleUploadModal({ userType }: FlexibleUploadModalProps) {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState<"UPLOAD" | "MAPPING" | "PROCESSING">("UPLOAD");
     const [rawHeaders, setRawHeaders] = useState<string[]>([]);
@@ -91,14 +95,14 @@ export default function FlexibleUploadModal() {
             return {
                 name: getVal("name") || "",
                 email: getVal("email") || "",
-                roll: getVal("roll") || undefined,
-                enrollment: getVal("enrollment") || undefined,
-                batch: getVal("batch") || undefined
-            }; // Filter out empty rows/fields if needed
+                roll: userType === "STUDENT" ? (getVal("roll") || undefined) : undefined,
+                enrollment: userType === "STUDENT" ? (getVal("enrollment") || undefined) : undefined,
+                batch: userType === "STUDENT" ? (getVal("batch") || undefined) : undefined
+            };
         }).filter(d => d.name && d.email);
 
         try {
-            const result = await uploadBulkUsers(mappedData);
+            const result = await uploadBulkUsers(mappedData, userType);
             if (result.success) {
                 setStats(result.stats);
                 toast.success("Upload completed!");
@@ -131,12 +135,12 @@ export default function FlexibleUploadModal() {
             <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Upload className="w-4 h-4 mr-2" />
-                    Bulk Upload
+                    Bulk Upload {userType === "STUDENT" ? "Students" : "Faculty"}
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-zinc-100">
                 <DialogHeader>
-                    <DialogTitle className="text-xl">Bulk Upload Students</DialogTitle>
+                    <DialogTitle className="text-xl">Bulk Upload {userType === "STUDENT" ? "Students" : "Faculty"}</DialogTitle>
                     <DialogDescription className="text-zinc-400">
                         Upload a CSV or PDF file and map the columns to system fields.
                     </DialogDescription>
@@ -178,6 +182,7 @@ export default function FlexibleUploadModal() {
                         <ColumnMappingStep
                             data={[rawHeaders, ...rawRows]}
                             onMap={setMapping}
+                            userType={userType}
                         />
                         <div className="flex justify-end space-x-3 pt-6 border-t border-zinc-800">
                             <Button variant="outline" onClick={reset} className="border-zinc-700 hover:bg-zinc-800 text-zinc-300">

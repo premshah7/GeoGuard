@@ -3,9 +3,9 @@
 
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { deleteUsers } from "@/actions/admin";
+import { deleteUsers } from "@/actions/user";
 import { useRouter } from "next/navigation";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 interface DeleteStudentButtonProps {
     userId: number;
@@ -20,7 +20,7 @@ export default function DeleteStudentButton({ userId, studentName }: DeleteStude
     const handleDelete = async () => {
         setIsDeleting(true);
         try {
-            const result = await deleteUsers([userId]);
+            const result = await deleteUsers([userId], 'student');
             if (result.error) {
                 alert(result.error);
             } else {

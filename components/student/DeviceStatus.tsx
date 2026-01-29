@@ -8,12 +8,14 @@ import { useRouter } from "next/navigation";
 
 interface DeviceStatusProps {
     initialDeviceHash: string | null;
+    initialDeviceId: string | null;
     initialIsRequested: boolean;
 }
 
-export default function DeviceStatus({ initialDeviceHash, initialIsRequested }: DeviceStatusProps) {
+export default function DeviceStatus({ initialDeviceHash, initialDeviceId, initialIsRequested }: DeviceStatusProps) {
     const router = useRouter();
     const [deviceHash, setDeviceHash] = useState(initialDeviceHash);
+    const [deviceId, setDeviceId] = useState(initialDeviceId);
     const [isRequested, setIsRequested] = useState(initialIsRequested);
 
     // Polling logic to check for status updates
@@ -25,10 +27,12 @@ export default function DeviceStatus({ initialDeviceHash, initialIsRequested }: 
                 if (status) {
                     // Check if state has changed from what we currently display
                     const hashChanged = status.deviceHash !== deviceHash;
+                    const idChanged = status.deviceId !== deviceId;
                     const requestChanged = status.isDeviceResetRequested !== isRequested;
 
-                    if (hashChanged || requestChanged) {
+                    if (hashChanged || requestChanged || idChanged) {
                         setDeviceHash(status.deviceHash);
+                        setDeviceId(status.deviceId);
                         setIsRequested(status.isDeviceResetRequested);
 
                         // If device became unbound (reset approved), refresh the whole page
@@ -42,7 +46,7 @@ export default function DeviceStatus({ initialDeviceHash, initialIsRequested }: 
         }, 5000); // Check every 5 seconds
 
         return () => clearInterval(interval);
-    }, [deviceHash, isRequested, router]);
+    }, [deviceHash, deviceId, isRequested, router]);
 
     return (
         <div className={`p-4 rounded-xl border ${deviceHash ? 'bg-green-500/10 border-green-500/20' : 'bg-yellow-500/10 border-yellow-500/20'}`}>
@@ -52,6 +56,11 @@ export default function DeviceStatus({ initialDeviceHash, initialIsRequested }: 
                     <div className={`font-medium ${deviceHash ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                         {deviceHash ? 'Device Bound' : 'Device Not Bound'}
                     </div>
+                    {deviceHash && deviceId && (
+                        <div className="text-[10px] font-mono text-zinc-500 mt-0.5 mb-0.5">
+                            ID: {deviceId.substring(0, 8)}...
+                        </div>
+                    )}
                     <div className="text-xs text-muted-foreground">
                         {deviceHash ? 'You can mark attendance.' : 'Next scan will bind this device.'}
                     </div>

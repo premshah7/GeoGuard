@@ -6,9 +6,9 @@ import { User, Smartphone, Trash2, CheckSquare, Square, MinusSquare } from "luci
 import DeviceResetButton from "@/components/admin/DeviceResetButton";
 import EditStudentModal from "@/components/admin/EditStudentModal";
 import DeleteStudentButton from "@/components/admin/DeleteStudentButton";
-import { deleteUsers } from "@/actions/admin";
+import { deleteUsers } from "@/actions/user";
 import { useRouter } from "next/navigation";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 interface Student {
     id: number;
@@ -62,7 +62,7 @@ export default function StudentTable({ students, batches }: StudentTableProps) {
     const handleBulkDelete = async () => {
         setIsBulkDeleting(true);
         try {
-            const result = await deleteUsers(Array.from(selectedIds));
+            const result = await deleteUsers(Array.from(selectedIds), 'student');
             if (result.error) {
                 alert(result.error);
             } else {

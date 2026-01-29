@@ -5,7 +5,7 @@ import QRCode from "react-qr-code";
 import { endSession, getSessionStats, getSessionAttendance } from "@/actions/session";
 import { useRouter } from "next/navigation";
 import { Loader2, StopCircle, RefreshCw, Users, ShieldAlert } from "lucide-react";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Download, FileText } from "lucide-react";
@@ -15,7 +15,7 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
 
     const router = useRouter();
     const [token, setToken] = useState("");
-    const [stats, setStats] = useState<{
+    const [sessionStatistics, setSessionStatistics] = useState<{
         attendanceCount: number;
         proxyCount: number;
         recentAttendance: any[];
@@ -47,7 +47,7 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
     useEffect(() => {
         const fetchStats = async () => {
             const newStats = await getSessionStats(sessionId);
-            setStats(newStats);
+            setSessionStatistics(newStats);
         };
 
         fetchStats();
@@ -60,9 +60,15 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
     }, [sessionId]);
 
     const handleEndSession = async () => {
+        if (loading) return; // Prevent double clicks
         setLoading(true);
-        await endSession(sessionId);
-        router.push("/faculty");
+        try {
+            await endSession(sessionId);
+            router.push("/faculty");
+        } catch (error) {
+            console.error(error);
+            setLoading(false);
+        }
     };
 
     const handleDownloadPDF = async () => {
@@ -175,9 +181,9 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
     };
 
     // Merge and sort logs
-    const logs = [
-        ...stats.recentAttendance.map(a => ({ ...a, type: 'attendance' })),
-        ...stats.recentProxies.map(p => ({ ...p, type: 'proxy' }))
+    const activityLogs = [
+        ...sessionStatistics.recentAttendance.map(attendanceRecord => ({ ...attendanceRecord, type: 'attendance' })),
+        ...sessionStatistics.recentProxies.map(proxyRecord => ({ ...proxyRecord, type: 'proxy' }))
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     return (
@@ -210,21 +216,21 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
                             <Users className="w-5 h-5" />
                             <span className="font-medium">Present</span>
                         </div>
-                        <div className="text-4xl font-bold text-foreground">{stats.attendanceCount}</div>
+                        <div className="text-4xl font-bold text-foreground">{sessionStatistics.attendanceCount}</div>
                     </div>
                     <div className="bg-card border border-border p-6 rounded-xl shadow-sm">
                         <div className="flex items-center gap-3 mb-2 text-red-600">
                             <ShieldAlert className="w-5 h-5" />
                             <span className="font-medium">Proxies</span>
                         </div>
-                        <div className="text-4xl font-bold text-foreground">{stats.proxyCount}</div>
+                        <div className="text-4xl font-bold text-foreground">{sessionStatistics.proxyCount}</div>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <button
                         onClick={handleDownloadPDF}
-                        disabled={stats.attendanceCount === 0}
+                        disabled={sessionStatistics.attendanceCount === 0}
                         className="flex items-center justify-center gap-2 p-3 bg-red-600/10 border border-red-600/50 text-red-500 rounded-lg hover:bg-red-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         <FileText className="w-4 h-4" />
@@ -232,7 +238,7 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
                     </button>
                     <button
                         onClick={handleDownloadTXT}
-                        disabled={stats.attendanceCount === 0}
+                        disabled={sessionStatistics.attendanceCount === 0}
                         className="flex items-center justify-center gap-2 p-3 bg-blue-600/10 border border-blue-600/50 text-blue-500 rounded-lg hover:bg-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         <Download className="w-4 h-4" />
@@ -243,12 +249,12 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
                 <div className="flex-1 bg-card border border-border rounded-xl p-6 overflow-hidden flex flex-col shadow-sm">
                     <h3 className="text-lg font-bold text-foreground mb-4">Live Activity</h3>
                     <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
-                        {logs.length === 0 ? (
+                        {activityLogs.length === 0 ? (
                             <div className="h-full flex items-center justify-center text-muted-foreground text-sm italic">
                                 Waiting for activity...
                             </div>
                         ) : (
-                            logs.map((log: any) => (
+                            activityLogs.map((log: any) => (
                                 <div
                                     key={`${log.type}-${log.id}`}
                                     className={`p-3 rounded-lg border flex items-center justify-between ${log.type === 'proxy'

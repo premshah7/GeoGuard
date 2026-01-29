@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import AddFacultyForm from "@/components/admin/AddFacultyForm";
 import FacultyTable from "@/components/admin/FacultyTable";
-import BulkUploadClient from "@/components/admin/BulkUploadClient";
+import FlexibleUploadModal from "@/components/admin/FlexibleUploadModal";
 
 import { getBatches } from "@/actions/batch";
 
@@ -42,7 +42,7 @@ export default async function FacultyManagementPage() {
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold whitespace-nowrap text-foreground">Faculty Management</h1>
                     <div className="flex items-center gap-4 flex-1 justify-end">
-                        <BulkUploadClient userType="FACULTY" />
+                        <FlexibleUploadModal userType="FACULTY" />
                         <AddFacultyForm batches={batches} />
                     </div>
                 </div>

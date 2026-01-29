@@ -4,7 +4,7 @@ import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, UserMinus } from "lucide-react";
 import { removeStudentFromBatch } from "@/actions/admin";
-import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 interface RemoveStudentFromBatchButtonProps {
     studentId: number;
@@ -43,14 +43,14 @@ export default function RemoveStudentFromBatchButton({
                 <UserMinus className="w-4 h-4" />
             </button>
 
-            <ConfirmationModal
+            <ConfirmDialog
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onConfirm={handleConfirm}
                 title="Remove Student?"
                 description={`Are you sure you want to remove ${studentName} from this batch? This action will not delete the student account.`}
                 confirmText="Remove User"
-                isLoading={isPending}
+                loading={isPending}
             />
         </>
     );

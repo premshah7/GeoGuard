@@ -28,45 +28,45 @@ export async function parsePdfToTable(buffer: Buffer): Promise<string[][]> {
     return new Promise((resolve, reject) => {
         const pdfParser = new PDFParser();
 
-        pdfParser.on("pdfParser_dataError", (errData: any) => {
-            reject(new Error(errData.parserError));
+        pdfParser.on("pdfParser_dataError", (errorData: any) => {
+            reject(new Error(errorData.parserError));
         });
 
-        pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        pdfParser.on("pdfParser_dataReady", (parsedPdfData: any) => {
             try {
                 const allRows: string[][] = [];
 
-                pdfData.Pages.forEach((page: any) => {
+                parsedPdfData.Pages.forEach((page: any) => {
                     const texts = page.Texts;
-                    const rows: Record<string, { x: number; text: string }[]> = {};
+                    const rowsMap: Record<string, { x: number; text: string }[]> = {};
                     const tolerance = 0.5;
 
-                    texts.forEach((t: any) => {
-                        const y = t.y;
-                        const textContent = decodeURIComponent(t.R[0].T);
-                        const existingRowY = Object.keys(rows).find(key => Math.abs(parseFloat(key) - y) < tolerance);
-                        const rowY = existingRowY ?? y.toString();
+                    texts.forEach((textItem: any) => {
+                        const yPosition = textItem.y;
+                        const textContent = decodeURIComponent(textItem.R[0].T);
+                        const existingRowY = Object.keys(rowsMap).find(key => Math.abs(parseFloat(key) - yPosition) < tolerance);
+                        const rowY = existingRowY ?? yPosition.toString();
 
-                        if (!rows[rowY]) {
-                            rows[rowY] = [];
+                        if (!rowsMap[rowY]) {
+                            rowsMap[rowY] = [];
                         }
 
-                        rows[rowY].push({ x: t.x, text: textContent });
+                        rowsMap[rowY].push({ x: textItem.x, text: textContent });
                     });
 
-                    const sortedY = Object.keys(rows).sort((a, b) => parseFloat(a) - parseFloat(b));
+                    const sortedYPositions = Object.keys(rowsMap).sort((a, b) => parseFloat(a) - parseFloat(b));
 
-                    sortedY.forEach((y) => {
-                        const rowItems = rows[y as keyof typeof rows];
-                        if (rowItems) {
-                            rowItems.sort((a, b) => a.x - b.x);
-                            allRows.push(rowItems.map(i => i.text));
+                    sortedYPositions.forEach((yPosition) => {
+                        const textItemsInRow = rowsMap[yPosition as keyof typeof rowsMap];
+                        if (textItemsInRow) {
+                            textItemsInRow.sort((a, b) => a.x - b.x);
+                            allRows.push(textItemsInRow.map(item => item.text));
                         }
                     });
                 });
                 resolve(allRows);
-            } catch (e) {
-                reject(e);
+            } catch (error) {
+                reject(error);
             }
         });
 

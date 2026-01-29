@@ -4,7 +4,7 @@ import { approveStudent } from "@/actions/admin";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 export default function ApproveButton({ userId }: { userId: number }) {
     const [loading, setLoading] = useState(false);

@@ -72,7 +72,7 @@ export default async function StudentManagementPage({
                     <div className="w-full max-w-md">
                         <Search placeholder="Search students..." />
                     </div>
-                    <FlexibleUploadModal />
+                    <FlexibleUploadModal userType="STUDENT" />
                     <AddStudentForm batches={batches} />
                 </div>
             </div>

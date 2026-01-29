@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Users, BookOpen, GraduationCap, Edit, Trash2 } from "lucide-react";
 import SubjectEnrollment from "./SubjectEnrollment";
 import EditSubjectModal from "./EditSubjectModal";
-import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { deleteSubject } from "@/actions/subject";
 
 type Subject = {
@@ -143,14 +143,14 @@ export default function SubjectList({ subjects, facultyList }: { subjects: Subje
                 />
             )}
 
-            <ConfirmationModal
+            <ConfirmDialog
                 isOpen={!!subjectToDelete}
                 onClose={() => setSubjectToDelete(null)}
                 onConfirm={confirmDelete}
                 title="Delete Subject"
                 description={`Are you sure you want to delete "${subjectToDelete?.name}"? This will permanently delete all associated sessions and attendance records.`}
                 confirmText="Delete Subject"
-                isLoading={isDeleting}
+                loading={isDeleting}
                 variant="danger"
             />
         </>

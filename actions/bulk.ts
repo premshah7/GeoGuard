@@ -149,26 +149,39 @@ export async function uploadBulkUsers(students: StudentData[], role: "STUDENT" |
                 select: { id: true, email: true }
             });
 
-            // 3. Create Student Profiles
-            const studentData = createdUsers.map(u => {
-                const original = newUsers.find(nu => nu.email === u.email);
-                if (!original) return null;
+            // 3. Create Profiles
+            if (role === "STUDENT") {
+                const studentData = createdUsers.map(u => {
+                    const original = newUsers.find(nu => nu.email === u.email);
+                    if (!original) return null;
 
-                const batchId = original.batch ? (batchMap.get(original.batch) || null) : null;
+                    const batchId = original.batch ? (batchMap.get(original.batch) || null) : null;
 
-                return {
-                    userId: u.id,
-                    rollNumber: original.roll || "",
-                    enrollmentNo: original.enrollment || "",
-                    batchId: batchId
-                };
-            }).filter(Boolean);
+                    return {
+                        userId: u.id,
+                        rollNumber: original.roll || "",
+                        enrollmentNo: original.enrollment || "",
+                        batchId: batchId
+                    };
+                }).filter(Boolean);
 
-            if (studentData.length > 0) {
-                await tx.student.createMany({
-                    data: studentData as any,
-                    skipDuplicates: true
-                });
+                if (studentData.length > 0) {
+                    await tx.student.createMany({
+                        data: studentData as any,
+                        skipDuplicates: true
+                    });
+                }
+            } else if (role === "FACULTY") {
+                const facultyData = createdUsers.map(u => ({
+                    userId: u.id
+                }));
+
+                if (facultyData.length > 0) {
+                    await tx.faculty.createMany({
+                        data: facultyData,
+                        skipDuplicates: true
+                    });
+                }
             }
 
             results.success += createdUsers.length;

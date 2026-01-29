@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export async function registerDevice(fingerprint: string) {
+export async function registerDevice(fingerprint: string, deviceId: string) {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "STUDENT") {
@@ -20,17 +20,20 @@ export async function registerDevice(fingerprint: string) {
             return { error: "Student profile not found" };
         }
 
-        if (student.deviceHash) {
-            if (student.deviceHash === fingerprint) {
+        if (student.deviceHash || student.deviceId) {
+            if (student.deviceHash === fingerprint && student.deviceId === deviceId) {
                 return { success: true, message: "Device already registered" };
             }
             return { error: "Device mismatch. You can only use one registered device." };
         }
 
-        // Register the device
+        // Register the device (Bind both Hash and ID)
         await prisma.student.update({
             where: { id: student.id },
-            data: { deviceHash: fingerprint },
+            data: {
+                deviceHash: fingerprint,
+                deviceId: deviceId
+            },
         });
 
         return { success: true, message: "Device registered successfully" };

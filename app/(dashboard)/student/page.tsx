@@ -89,6 +89,7 @@ export default async function StudentDashboard() {
                 <h3 className="text-muted-foreground text-sm font-medium mb-3 uppercase tracking-wider">Device Status</h3>
                 <DeviceStatus
                     initialDeviceHash={student.deviceHash}
+                    initialDeviceId={student.deviceId}
                     initialIsRequested={student.isDeviceResetRequested}
                 />
             </div>

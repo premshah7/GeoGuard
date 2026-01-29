@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 
 import { headers } from "next/headers";
 
-export async function markAttendance(token: string, deviceHash: string, userAgent: string) {
+export async function markAttendance(token: string, deviceHash: string, deviceId: string, userAgent: string) {
     const session = await getServerSession(authOptions);
 
     if (!session || session.user.role !== "STUDENT") {
@@ -58,80 +58,75 @@ export async function markAttendance(token: string, deviceHash: string, userAgen
         return { error: "Attendance already marked", success: true };
     }
 
-    // --- NEW: GLOBAL DEVICE OWNERSHIP CHECK ---
+    // --- NEW: GLOBAL DEVICE OWNERSHIP CHECK (Sticky ID + Fingerprint) ---
     // Check if this device is already registered to another student.
-    // This prevents shared devices even if the current student isn't bound yet.
+    // We check BOTH the hardware fingerprint AND the persistent browser ID.
     const deviceOwner = await prisma.student.findFirst({
         where: {
-            deviceHash: deviceHash,
+            OR: [
+                { deviceHash: deviceHash }, // Hardware match
+                { deviceId: deviceId }      // Sticky ID match (Shared Browser Exploit)
+            ],
             id: { not: student.id } // Exclude self
         },
         include: { user: true }
     });
 
     if (deviceOwner) {
-        // Log Proxy Attempt (The current student is trying to use someone else's device)
-        await prisma.proxyAttempt.create({
-            data: {
-                studentId: student.id,
-                sessionId: sessionId,
-                attemptedHash: deviceHash,
-                deviceOwnerId: deviceOwner.id // Record the victim
-            },
-        });
+        // Determine what matched for better logging
+        const isStickyMatch = deviceOwner.deviceId === deviceId;
+        const logHash = isStickyMatch ? `ID:${deviceId}` : `HASH:${deviceHash}`;
 
-        return { error: "Device Verification Failed! This device is linked to another account. Proxy attempt recorded." };
-    }
-
-    // 5. IP Validation (Prefix Check)
-    // Delegated to shared utility for consistent logging & checking
-    const isIpValid = await validateIp();
-    if (!isIpValid) {
-        return { error: "You are not connected to the required network (IP Mismatch)." };
-    }
-
-
-    // 6. Device Validation (Anti-Proxy)
-    let isProxy = false;
-
-    if (!student.deviceHash) {
-        // --- HEURISTIC REMOVED: Caused false positives for students on same WiFi ---
-        /*
-        const recentSharedActivity = await prisma.attendance.findFirst({
-            where: {
-                sessionId: sessionId,
-                ipAddress: ip,
-                userAgent: userAgent,
-                studentId: { not: student.id }
-            }
-        });
-
-        if (recentSharedActivity) {
-            return { error: "Suspicious activity detected. You cannot use a device that was just used by another student." };
-        }
-        */
-
-
-        // Bind Device (First time)
-        await prisma.student.update({
-            where: { id: student.id },
-            data: { deviceHash: deviceHash },
-        });
-    } else if (student.deviceHash !== deviceHash) {
-        // Mismatch!
-        isProxy = true;
-    }
-
-    if (isProxy) {
         // Log Proxy Attempt
         await prisma.proxyAttempt.create({
             data: {
                 studentId: student.id,
                 sessionId: sessionId,
-                attemptedHash: deviceHash,
+                attemptedHash: logHash,
+                deviceOwnerId: deviceOwner.id
             },
         });
-        return { error: "Device Verification Failed! Proxy attempt recorded." };
+
+        return { error: "Device Verification Failed! This device is linked to another account." };
+    }
+
+    // 5. IP Validation
+    const isIpValid = await validateIp();
+    if (!isIpValid) {
+        return { error: "You are not connected to the required network (IP Mismatch)." };
+    }
+
+    // 6. Device Validation (Anti-Proxy for current student)
+    let isProxy = false;
+
+    if (!student.deviceHash || !student.deviceId) {
+        // Bind Device (First time) - Enforce both
+        await prisma.student.update({
+            where: { id: student.id },
+            data: {
+                deviceHash: deviceHash,
+                deviceId: deviceId
+            },
+        });
+    } else {
+        // Verify consistency
+        // If either the hardware hash OR the sticky ID changes, we flag it.
+        // Changing browser (new sticky ID) is allowed ONLY if the hardware matches? 
+        // No, strict mode: Both must match the registered profile.
+        if (student.deviceHash !== deviceHash || student.deviceId !== deviceId) {
+            isProxy = true;
+        }
+    }
+
+    if (isProxy) {
+        await prisma.proxyAttempt.create({
+            data: {
+                studentId: student.id,
+                sessionId: sessionId,
+                attemptedHash: `HASH:${deviceHash}|ID:${deviceId}`,
+            },
+        });
+        return { error: "Device Verification Failed! Please use your registered device and browser." };
     }
 
     // 7. Mark Attendance

@@ -16,7 +16,7 @@ export function parseCSV(file: File): Promise<{ data: any[]; errors: string[] }>
                     return;
                 }
 
-                const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ''));
+                const headers = lines[0].split(",").map(header => header.trim().replace(/^"|"$/g, ''));
                 const data: any[] = [];
                 const errors: string[] = [];
 
@@ -39,7 +39,7 @@ export function parseCSV(file: File): Promise<{ data: any[]; errors: string[] }>
 
                     if (values.length !== headers.length) {
                         // Attempt simple split if regex parsing didn't align (fallback)
-                        const simpleValues = line.split(",").map(v => v.trim());
+                        const simpleValues = line.split(",").map(value => value.trim());
                         if (simpleValues.length === headers.length) {
                             const row: any = {};
                             headers.forEach((header, index) => {

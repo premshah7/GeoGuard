@@ -7,17 +7,18 @@ import { Card } from "@/components/ui/card";
 interface ColumnMappingStepProps {
     data: string[][]; // Raw data: headers + rows
     onMap: (mapping: Record<string, string>) => void;
+    userType: "STUDENT" | "FACULTY";
 }
 
-const REQUIRED_FIELDS = [
-    { key: "name", label: "Name", required: true },
-    { key: "email", label: "Email", required: true },
-    { key: "roll", label: "Roll No", required: false },
-    { key: "enrollment", label: "Enrollment No", required: false },
-    { key: "batch", label: "Batch", required: false },
+const ALL_FIELDS = [
+    { key: "name", label: "Name", required: true, types: ["STUDENT", "FACULTY"] },
+    { key: "email", label: "Email", required: true, types: ["STUDENT", "FACULTY"] },
+    { key: "roll", label: "Roll No", required: false, types: ["STUDENT"] },
+    { key: "enrollment", label: "Enrollment No", required: false, types: ["STUDENT"] },
+    { key: "batch", label: "Batch", required: false, types: ["STUDENT"] },
 ];
 
-export default function ColumnMappingStep({ data, onMap }: ColumnMappingStepProps) {
+export default function ColumnMappingStep({ data, onMap, userType }: ColumnMappingStepProps) {
     const headers = data[0] || [];
     const previewRows = data.slice(1, 6);
 
@@ -53,6 +54,8 @@ export default function ColumnMappingStep({ data, onMap }: ColumnMappingStepProp
         onMap(newMapping);
     };
 
+    const fieldsToShow = ALL_FIELDS.filter(f => f.types.includes(userType));
+
     return (
         <div className="space-y-6">
             <div className="text-sm text-zinc-400">
@@ -60,7 +63,7 @@ export default function ColumnMappingStep({ data, onMap }: ColumnMappingStepProp
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {REQUIRED_FIELDS.map((field) => (
+                {fieldsToShow.map((field) => (
                     <Card key={field.key} className="p-4 border border-zinc-800 bg-zinc-900/50 shadow-sm">
                         <div className="flex flex-col space-y-3">
                             <Label className="font-semibold text-zinc-200">
@@ -103,7 +106,7 @@ export default function ColumnMappingStep({ data, onMap }: ColumnMappingStepProp
                                         {h}
                                         {Object.entries(mapping).find(([k, v]) => v === h) && (
                                             <span className="block text-xs font-normal text-blue-500 mt-1">
-                                                → {REQUIRED_FIELDS.find(f => f.key === Object.entries(mapping).find(([k, v]) => v === h)?.[0])?.label}
+                                                → {ALL_FIELDS.find(f => f.key === Object.entries(mapping).find(([k, v]) => v === h)?.[0])?.label}
                                             </span>
                                         )}
                                     </th>

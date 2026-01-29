@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { User, Trash2 } from "lucide-react";
-import { deleteUsers } from "@/actions/admin";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import { deleteUsers } from "@/actions/user";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 import EditFacultyModal from "@/components/admin/EditFacultyModal";
 import { useRouter } from "next/navigation";
 import FormattedTime from "@/components/FormattedTime";
@@ -58,7 +58,7 @@ export default function FacultyTable({ initialFaculty, batches }: FacultyTablePr
 
     const handleDelete = async () => {
         setIsDeleting(true);
-        const result = await deleteUsers(selectedIds);
+        const result = await deleteUsers(selectedIds, 'faculty');
 
         if (result.success) {
             setSelectedIds([]);

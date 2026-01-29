@@ -183,6 +183,7 @@ export async function resetDevice(studentId: number) {
             where: { id: studentId },
             data: {
                 deviceHash: null,
+                deviceId: null,
                 isDeviceResetRequested: false,
             },
         });
@@ -195,28 +196,7 @@ export async function resetDevice(studentId: number) {
     }
 }
 
-export async function deleteUsers(userIds: number[]) {
-    try {
-        const session = await getServerSession(authOptions);
-        if (session?.user.role !== "ADMIN") {
-            return { error: "Unauthorized Access" };
-        }
-        await prisma.user.deleteMany({
-            where: {
-                id: {
-                    in: userIds,
-                },
-            },
-        });
 
-        revalidatePath("/admin/faculty");
-        revalidatePath("/admin/students");
-        return { success: true };
-    } catch (error) {
-        console.error("Error deleting users:", error);
-        return { error: "Failed to delete users" };
-    }
-}
 
 export async function getGlobalAnalytics() {
     const session = await getServerSession(authOptions);
@@ -284,27 +264,27 @@ export async function getSecurityOverview() {
     const dailyMap = new Map<string, { verified: number; suspicious: number }>();
 
     // Helper to init map entry
-    const getEntry = (date: string) => {
+    const getDailyStatEntry = (date: string) => {
         if (!dailyMap.has(date)) dailyMap.set(date, { verified: 0, suspicious: 0 });
         return dailyMap.get(date)!;
     };
 
-    attendances.forEach(a => {
-        const date = a.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        getEntry(date).verified++;
+    attendances.forEach(attendance => {
+        const date = attendance.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        getDailyStatEntry(date).verified++;
     });
 
-    proxies.forEach(p => {
-        const date = p.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        getEntry(date).suspicious++;
+    proxies.forEach(proxyAttempt => {
+        const date = proxyAttempt.timestamp.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        getDailyStatEntry(date).suspicious++;
     });
 
     // Fill last 14 days
     const result = [];
     for (let i = 13; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const dateObject = new Date();
+        dateObject.setDate(dateObject.getDate() - i);
+        const dateStr = dateObject.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         const stats = dailyMap.get(dateStr) || { verified: 0, suspicious: 0 };
         result.push({ date: dateStr, ...stats });
     }

@@ -40,6 +40,7 @@ export async function getStudentStatus() {
             where: { userId: Number(session.user.id) },
             select: {
                 deviceHash: true,
+                deviceId: true,
                 isDeviceResetRequested: true,
             },
         });

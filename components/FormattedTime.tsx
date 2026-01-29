@@ -15,12 +15,12 @@ export default function FormattedTime({ date, includeSeconds = false, dateOnly =
     useEffect(() => {
         if (!date) return;
 
-        const d = new Date(date);
+        const parsedDate = new Date(date);
 
         if (dateOnly) {
-            setFormatted(d.toLocaleDateString());
+            setFormatted(parsedDate.toLocaleDateString());
         } else {
-            setFormatted(d.toLocaleString(undefined, {
+            setFormatted(parsedDate.toLocaleString(undefined, {
                 year: 'numeric',
                 month: 'numeric',
                 day: 'numeric',

@@ -38,6 +38,7 @@ model Student {
   enrollmentNo           String  @unique
   userId                 Int     @unique
   deviceHash             String?
+  deviceId               String? // Persistent LocalStorage UUID
   isDeviceResetRequested Boolean @default(false)
 
   user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)

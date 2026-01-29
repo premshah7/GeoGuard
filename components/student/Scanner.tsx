@@ -232,9 +232,9 @@ export default function Scanner({ isDeviceResetRequested = false }: ScannerProps
             <div className="flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition-opacity">
                 <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold">Security Identity</p>
                 <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-600 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
-                    <span>HW: {deviceHash.substring(0, 6)}</span>
+                    <span>HW: {(deviceHash || "").substring(0, 6)}</span>
                     <span className="text-zinc-700">|</span>
-                    <span>ID: {deviceId.substring(0, 6)}</span>
+                    <span>ID: {(deviceId || "").substring(0, 6)}</span>
                 </div>
             </div>
         </div>

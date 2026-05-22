@@ -12,7 +12,7 @@ const EmailSchema = z.string().email();
 /**
  * Sends an OTP to the provided identifier (Email, Phone, or Username).
  */
-export async function sendOtp(identifier: string) {
+export async function sendOtp(identifier: string, type: "login" | "forgot-password" = "login") {
     try {
         if (!identifier) {
             return { success: false, message: "Identifier is required" };
@@ -90,7 +90,8 @@ export async function sendOtp(identifier: string) {
             // Construct Magic Link
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
             // Encode params just in case
-            const magicLink = `${baseUrl}/auth/login?identifier=${encodeURIComponent(identifier)}&otp=${code}&magic=true`;
+            const path = type === "forgot-password" ? "forgot-password" : "login";
+            const magicLink = `${baseUrl}/auth/${path}?identifier=${encodeURIComponent(identifier)}&otp=${code}&magic=true`;
 
             const htmlContent = getOtpEmailHtml(code, magicLink);
 

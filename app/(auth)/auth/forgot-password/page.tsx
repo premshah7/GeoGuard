@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, Mail, KeyRound, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { sendOtp } from "@/actions/otp";
 import { resetPassword } from "@/actions/auth";
 
 type Step = "email" | "otp" | "done";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
+    const searchParams = useSearchParams();
     const [step, setStep] = useState<Step>("email");
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
@@ -18,10 +20,26 @@ export default function ForgotPasswordPage() {
     const [error, setError] = useState("");
     const [isPending, startTransition] = useTransition();
 
+    useEffect(() => {
+        const identifierParam = searchParams.get("identifier");
+        const otpParam = searchParams.get("otp");
+        const magicParam = searchParams.get("magic");
+
+        if (identifierParam) {
+            setEmail(identifierParam);
+        }
+        if (otpParam) {
+            setOtp(otpParam);
+        }
+        if (identifierParam && otpParam && magicParam === "true") {
+            setStep("otp");
+        }
+    }, [searchParams]);
+
     const handleSendOtp = () => {
         setError("");
         startTransition(async () => {
-            const res = await sendOtp(email);
+            const res = await sendOtp(email, "forgot-password");
             if (res.success) setStep("otp");
             else setError(res.message);
         });
@@ -147,5 +165,13 @@ export default function ForgotPasswordPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function ForgotPasswordPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>}>
+            <ForgotPasswordForm />
+        </Suspense>
     );
 }

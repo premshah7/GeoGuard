@@ -75,7 +75,7 @@ export async function markAttendance(token: string, deviceHash: string, userAgen
     const [dbSession, student] = await Promise.all([
         prisma.session.findUnique({
             where: { id: sessionId },
-            include: { 
+            include: {
                 batches: true,
                 subject: { select: { name: true } },
                 event: { select: { name: true } }
@@ -222,7 +222,7 @@ export async function markAttendance(token: string, deviceHash: string, userAgen
     */
 
     const isGuest = session.user.role === "GUEST";
-    
+
     // --- TEMPORARILY DISABLED DEVICE VERIFICATION ---
     /*
     let isProxy = false;

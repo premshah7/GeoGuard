@@ -458,3 +458,36 @@ export async function resetAllDevices() {
     }
 }
 
+export async function bulkUpdateSemester(fromSemester: number, toSemester: number) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
+            return { error: "Unauthorized Access" };
+        }
+
+        if (!fromSemester || !toSemester) {
+            return { error: "Both source and target semesters are required" };
+        }
+
+        if (fromSemester === toSemester) {
+            return { error: "Source and target semesters cannot be the same" };
+        }
+
+        const result = await prisma.student.updateMany({
+            where: {
+                semester: fromSemester
+            },
+            data: {
+                semester: toSemester
+            }
+        });
+
+        revalidatePath("/admin/students");
+        revalidatePath("/admin/settings");
+        return { success: true, count: result.count };
+    } catch (error) {
+        console.error("Error bulk updating semesters:", error);
+        return { error: "Failed to update semesters" };
+    }
+}
+

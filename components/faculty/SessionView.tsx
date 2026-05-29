@@ -508,7 +508,7 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
                                                 </p>
                                                 {log.type === 'proxy' && log.deviceOwner?.user?.name && (
                                                     <p className="text-xs text-red-600 dark:text-red-400 font-semibold mt-0.5">
-                                                        Using {log.deviceOwner.user.name}'s Device
+                                                        Using {log.deviceOwner.user.name}'s Device ({log.deviceOwner.rollNumber})
                                                     </p>
                                                 )}
                                             </div>

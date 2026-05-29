@@ -258,8 +258,13 @@ export default function SessionReport({
                                         <div className="font-medium text-gray-200">
                                             {log.student.user.name}
                                         </div>
-                                        <div className="text-xs text-gray-500">
-                                            {log.student.rollNumber}
+                                        <div className="text-xs text-gray-500 flex flex-col gap-0.5">
+                                            <span>{log.student.rollNumber}</span>
+                                            {log.type === 'proxy' && log.deviceOwner?.user?.name && (
+                                                <span className="text-red-400 font-semibold text-[11px] mt-0.5">
+                                                    Using {log.deviceOwner.user.name}'s Device ({log.deviceOwner.rollNumber})
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

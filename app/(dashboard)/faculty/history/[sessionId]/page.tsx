@@ -41,7 +41,8 @@ export default async function SessionDetailPage({
             },
             proxyAttempts: {
                 include: {
-                    student: { include: { user: true } }
+                    student: { include: { user: true } },
+                    deviceOwner: { include: { user: true } }
                 }
             }
         }

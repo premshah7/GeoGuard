@@ -176,34 +176,35 @@ export default function Scanner({ isDeviceResetRequested = false, successRedirec
 
     return (
         <div className="w-full max-w-sm mx-auto space-y-6">
-            {!result ? (
-                <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-blue-500/50 shadow-2xl bg-black">
-                    {/* The scanner library handles camera permissions */}
-                    <QrReader
-                        onScan={handleScan}
-                        allowMultiple={true}
-                        scanDelay={2000}
-                        components={{
-                            onOff: true,
-                            torch: true,
-                            zoom: true,
-                            finder: true,
-                        }}
-                    />
-                    {loading && (
-                        <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm z-10 flex-col gap-3">
-                            <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-                            <p className="text-blue-400 font-medium text-sm">Verifying Location & Device...</p>
-                        </div>
-                    )}
-                    <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-                        <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            <span className="text-[10px] text-green-400 font-mono tracking-wider">SECURE LINK ACTIVED</span>
-                        </div>
+            <div className={result ? "hidden" : "relative aspect-square rounded-2xl overflow-hidden border-2 border-blue-500/50 shadow-2xl bg-black"}>
+                {/* The scanner library handles camera permissions */}
+                <QrReader
+                    onScan={handleScan}
+                    paused={paused}
+                    allowMultiple={true}
+                    scanDelay={2000}
+                    components={{
+                        onOff: true,
+                        torch: true,
+                        zoom: true,
+                        finder: true,
+                    }}
+                />
+                {loading && (
+                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm z-10 flex-col gap-3">
+                        <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
+                        <p className="text-blue-400 font-medium text-sm">Verifying Location & Device...</p>
+                    </div>
+                )}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                    <div className="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-[10px] text-green-400 font-mono tracking-wider">SECURE LINK ACTIVATED</span>
                     </div>
                 </div>
-            ) : (
+            </div>
+
+            {result && (
                 <div className="bg-gray-900 rounded-2xl p-8 text-center border border-gray-800 animate-in fade-in zoom-in duration-300 shadow-xl">
                     {result.success ? (
                         <>

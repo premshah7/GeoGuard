@@ -204,10 +204,11 @@ export async function markAttendance(token: string, deviceHash: string, userAgen
                 ipAddress: ip,
                 studentId: { not: student.id },
             },
-            select: { id: true },
+            select: { id: true, studentId: true },
         });
 
         if (ipUsedByOther) {
+            await logProxyAttempt(student.id, sessionId, `IP_CONFLICT | ip=${ip}`, ipUsedByOther.studentId);
             return {
                 error:
                     "Network Conflict: This IP address is already associated with another student. " +

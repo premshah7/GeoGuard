@@ -506,11 +506,21 @@ export default function SessionView({ sessionId, subjectName, subjectId }: { ses
                                                 <p className="text-xs text-slate-600 dark:text-slate-400 font-mono">
                                                     {log.student.rollNumber}
                                                 </p>
-                                                {log.type === 'proxy' && log.deviceOwner?.user?.name && (
-                                                    <p className="text-xs text-red-600 dark:text-red-400 font-semibold mt-0.5">
-                                                        Using {log.deviceOwner.user.name}'s Device ({log.deviceOwner.rollNumber})
-                                                    </p>
-                                                )}
+                                                {log.type === 'proxy' && (
+                                                     (log.attemptedHash || "").startsWith("IP_CONFLICT") ? (
+                                                         log.deviceOwner?.user?.name && (
+                                                             <p className="text-xs text-red-600 dark:text-red-400 font-semibold mt-0.5">
+                                                                 IP Conflict with: {log.deviceOwner.user.name} ({log.deviceOwner.rollNumber})
+                                                             </p>
+                                                         )
+                                                     ) : (
+                                                         log.deviceOwner?.user?.name && (
+                                                             <p className="text-xs text-red-600 dark:text-red-400 font-semibold mt-0.5">
+                                                                 Using {log.deviceOwner.user.name}'s Device ({log.deviceOwner.rollNumber})
+                                                             </p>
+                                                         )
+                                                     )
+                                                 )}
                                             </div>
                                         </div>
                                         <div className="text-right shrink-0">

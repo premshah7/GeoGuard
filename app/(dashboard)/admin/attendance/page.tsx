@@ -57,7 +57,16 @@ export default async function AttendanceLogsPage() {
                                         <FormattedTime date={log.timestamp} includeSeconds />
                                     </td>
                                     <td className="p-4 text-sm text-destructive font-medium">
-                                        {log.deviceOwner ? (
+                                        {(log.attemptedHash || "").startsWith("IP_CONFLICT") ? (
+                                            log.deviceOwner ? (
+                                                <>
+                                                    <span>IP Conflict with: </span>
+                                                    <span className="font-bold underline">{log.deviceOwner.user.name}</span>
+                                                </>
+                                            ) : (
+                                                "Network Conflict"
+                                            )
+                                        ) : log.deviceOwner ? (
                                             <>
                                                 <span>Device match: </span>
                                                 <span className="font-bold underline">{log.deviceOwner.user.name}</span>

@@ -3,87 +3,143 @@
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { validateIp } from "@/lib/ipCheck";
 import { revalidatePath } from "next/cache";
-
 import { cookies, headers } from "next/headers";
+import jwt from "jsonwebtoken";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Upsert a proxy-attempt record for a (student, session) pair.
+// We intentionally update on repeat so the admin sees the latest attempted hash.
+// ─────────────────────────────────────────────────────────────────────────────
+async function logProxyAttempt(
+    studentId: number,
+    sessionId: number,
+    attemptedHash: string,
+    deviceOwnerId?: number
+) {
+    try {
+        const existing = await prisma.proxyAttempt.findFirst({
+            where: { studentId, sessionId },
+        });
+
+        if (existing) {
+            await prisma.proxyAttempt.update({
+                where: { id: existing.id },
+                data: {
+                    attemptedHash,
+                    deviceOwnerId: deviceOwnerId ?? existing.deviceOwnerId,
+                    timestamp: new Date(),
+                },
+            });
+        } else {
+            await prisma.proxyAttempt.create({
+                data: { studentId, sessionId, attemptedHash, deviceOwnerId },
+            });
+        }
+    } catch (e) {
+        // Logging failure must never block attendance flow — just warn.
+        console.warn("[ProxyLog] Failed to write proxy attempt:", e);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// markAttendance
+// Called by the student QR scanner (Scanner.tsx) with:
+//   token      – signed JWT (or legacy "sessionId:timestamp") from the QR code
+//   deviceHash – FingerprintJS visitorId computed on the client
+//   userAgent  – navigator.userAgent from the client
+//
+// The HttpOnly "device_id" sticky cookie is read SERVER-SIDE — the client
+// never sees or supplies it, so it cannot be tampered with via JS.
+// ─────────────────────────────────────────────────────────────────────────────
 export async function markAttendance(token: string, deviceHash: string, userAgent: string) {
+    // ── Gate 0: Sticky device cookie ──────────────────────────────────────────
     const cookieStore = await cookies();
     const deviceId = cookieStore.get("device_id")?.value;
 
     if (!deviceId) {
         return { error: "Device Identity Missing. Please refresh the page." };
     }
-    const session = await getServerSession(authOptions);
 
+    // ── Gate 1: Auth ──────────────────────────────────────────────────────────
+    const session = await getServerSession(authOptions);
     if (!session || (session.user.role !== "STUDENT" && session.user.role !== "GUEST")) {
         return { error: "Unauthorized" };
     }
 
+    const isGuest = session.user.role === "GUEST";
     const studentId = parseInt(session.user.id);
 
-    // 1. Parse Token (JWT Support)
+    // ── Gate 2: Parse QR Token ────────────────────────────────────────────────
+    // QR_SECRET must NOT be NEXT_PUBLIC_ — read the server-only variable first,
+    // fall back to the public one only for backward compat during migration.
+    const QR_SECRET =
+        process.env.QR_SECRET ||
+        process.env.NEXT_PUBLIC_QR_SECRET ||
+        "fallback_secret";
+
     let sessionId: number;
     let timestamp: number;
 
-    const QR_SECRET = process.env.NEXT_PUBLIC_QR_SECRET || "fallback_secret";
-
-    // Check if it's a legacy token (sessionId:timestamp) or a JWT
     if (token.includes(":") && !token.includes(".")) {
-        // Legacy Path
+        // Legacy format: "sessionId:timestamp"
         const parts = token.split(":");
         sessionId = parseInt(parts[0]);
         timestamp = parseInt(parts[1]);
     } else {
-        // JWT Path
+        // Signed JWT format
         try {
-            // Lazy load jwt to avoid edge runtime issues if possible, although this is a server action.
-            const jwt = require("jsonwebtoken");
-            const decoded = jwt.verify(token, QR_SECRET) as any;
+            const decoded = jwt.verify(token, QR_SECRET) as {
+                sessionId: number;
+                timestamp: number;
+            };
             sessionId = decoded.sessionId;
             timestamp = decoded.timestamp;
 
-            // Validate payload structure
-            if (!sessionId || !timestamp) {
+            if (
+                typeof sessionId !== "number" ||
+                typeof timestamp !== "number" ||
+                !Number.isFinite(sessionId) ||
+                !Number.isFinite(timestamp)
+            ) {
                 return { error: "Invalid QR Token Payload" };
             }
-        } catch (e) {
-            console.error("JWT Verification Failed:", e);
-            return { error: "Invalid QR Codes" };
+        } catch {
+            return { error: "Invalid QR Code" };
         }
     }
 
     if (isNaN(sessionId) || isNaN(timestamp)) {
-        return { error: "Invalid QR Codes" };
+        return { error: "Invalid QR Code" };
     }
 
-    // 1.1 Check Expiration (4 Seconds)
-    const now = Date.now();
-    // Allow 4 seconds delay. We also allow 1 second future drift just in case.
-    if (now - timestamp > 4000) {
+    // ── Gate 3: QR Expiry (4 seconds) ─────────────────────────────────────────
+    if (Date.now() - timestamp > 4000) {
         return { error: "QR Code Expired! Please scan the dynamic code immediately." };
     }
 
-    // 2. Get IP
+    // ── Collect IP ────────────────────────────────────────────────────────────
+    // On Vercel, x-forwarded-for is set by Vercel's edge and cannot be
+    // spoofed by the end-user, so this is safe.
     const headerList = await headers();
-    const ip = headerList.get("x-forwarded-for")?.split(",")[0] ||
+    const ip =
+        headerList.get("x-forwarded-for")?.split(",")[0].trim() ||
         headerList.get("x-real-ip") ||
         "unknown";
 
-    // 3. Get Session & Student
+    // ── Fetch DB records in parallel ──────────────────────────────────────────
     const [dbSession, student] = await Promise.all([
         prisma.session.findUnique({
             where: { id: sessionId },
             include: {
                 batches: true,
                 subject: { select: { name: true } },
-                event: { select: { name: true } }
-            }
+                event: { select: { name: true } },
+            },
         }),
         prisma.student.findUnique({
             where: { userId: studentId },
-            include: { user: true }
+            include: { user: true },
         }),
     ]);
 
@@ -95,7 +151,7 @@ export async function markAttendance(token: string, deviceHash: string, userAgen
         return { error: "Student record not found" };
     }
 
-    // Check event registration approval (for event sessions)
+    // ── Gate 4: Event Registration ────────────────────────────────────────────
     if (dbSession.eventId) {
         const registration = await prisma.eventRegistration.findFirst({
             where: { eventId: dbSession.eventId, userId: studentId },
@@ -105,222 +161,190 @@ export async function markAttendance(token: string, deviceHash: string, userAgen
         }
     }
 
-    // 3.1 Check User Status (Approval)
+    // ── Gate 5: Account Status ────────────────────────────────────────────────
     if (student.user.status !== "APPROVED") {
         if (student.user.status === "PENDING") {
             return { error: "Your registration is pending approval. Please contact the organizer." };
-        } else if (student.user.status === "REJECTED") {
+        }
+        if (student.user.status === "REJECTED") {
             return { error: "Your registration has been rejected." };
         }
         return { error: "Account is not active." };
     }
 
-    // 3.2 Check Batch Restriction
+    // ── Gate 6: Batch Restriction ─────────────────────────────────────────────
     if (dbSession.batches && dbSession.batches.length > 0) {
-        // Session is restricted to specific batches.
-        // Check if student has a batch and if it matches one of the allowed batches.
-        const allowedBatchIds = new Set(dbSession.batches.map(b => b.id));
-
+        const allowedBatchIds = new Set(dbSession.batches.map((b) => b.id));
         if (!student.batchId || !allowedBatchIds.has(student.batchId)) {
-            const allowedBatchNames = dbSession.batches.map(b => b.name).join(", ");
-            return { error: `This session is restricted to batches: ${allowedBatchNames}. You are not in an eligible batch.` };
+            const names = dbSession.batches.map((b) => b.name).join(", ");
+            return {
+                error: `This session is restricted to batches: ${names}. You are not in an eligible batch.`,
+            };
         }
     }
 
-    /* 
-    // --- NEW: GLOBAL DEVICE OWNERSHIP CHECK (Sticky ID + Fingerprint) ---
-    console.log(`[Attendance Debug] User: ${student.user.email} | Hash: ${deviceHash} | ID: ${deviceId}`);
-
-    // Check if this device is already registered to another student.
-    // We check BOTH the hardware fingerprint AND the persistent browser ID.
-    const deviceOwner = await prisma.student.findFirst({
-        where: {
-            OR: [
-                { deviceHash: deviceHash }, // Hardware match
-                { deviceId: deviceId }      // Sticky ID match (Shared Browser Exploit)
-            ],
-            id: { not: student.id } // Exclude self
-        },
-        include: { user: true }
-    });
-
-    if (deviceOwner) {
-        console.log(`[Attendance Debug] Device Owner Found: ${deviceOwner.user.email} (ID: ${deviceOwner.id})`);
-        // Determine what matched for better logging
-        const isStickyMatch = deviceOwner.deviceId === deviceId;
-        const logHash = isStickyMatch ? `ID:${deviceId}` : `HASH:${deviceHash}`;
-
-        // Log Proxy Attempt
-        // Log Proxy Attempt (Upsert Logic)
-        const existingProxy = await prisma.proxyAttempt.findFirst({
-            where: {
-                studentId: student.id,
-                sessionId: sessionId
-            }
-        });
-
-        if (existingProxy) {
-            await prisma.proxyAttempt.update({
-                where: { id: existingProxy.id },
-                data: {
-                    attemptedHash: logHash,
-                    deviceOwnerId: deviceOwner.id,
-                    timestamp: new Date()
-                }
-            });
-        } else {
-            await prisma.proxyAttempt.create({
-                data: {
-                    studentId: student.id,
-                    sessionId: sessionId,
-                    attemptedHash: logHash,
-                    deviceOwnerId: deviceOwner.id
-                },
-            });
-        }
-
-        return { error: "Device Verification Failed! This device is linked to another account." };
-    }
-    */
-
-    // 5. Smart IP Lock & Validation
+    // ── Gate 7: IP Checks ─────────────────────────────────────────────────────
     const settings = await prisma.systemSettings.findFirst();
     const allowedPrefix = settings?.allowedIpPrefix || "";
     const isIpCheckEnabled = settings?.isIpCheckEnabled || false;
-
-    // A. Strict Campus Check (If enabled)
-    if (isIpCheckEnabled && allowedPrefix && !ip.startsWith(allowedPrefix)) {
-        return { error: "You are not connected to the Office/Campus Network." };
-    }
-
-    // B. Heuristic Proxy Lock (For Non-Campus/VPN/Mobile Data)
-    // If we are NOT enforcing strictly (or even if we are, and they are on a sub-network),
-    // we want to prevent 1 IP from marking for 2 people unless it's the known massive-shared range.
-
-    // Logic: If current IP is NOT the main campus range (or if no range defined), 
-    // we treat it as potentially "personal" (Mobile Data/VPN).
-    // On Personal IPs, we STRICTLY forbid sharing.
-
     const isCampusIp = allowedPrefix && ip.startsWith(allowedPrefix);
 
-    /*
-    if (!isCampusIp) {
-        // This is an external/VPN/Mobile IP. Enforce 1-to-1 binding.
+    // 7A. Strict campus enforcement (admin toggle)
+    if (isIpCheckEnabled && allowedPrefix && !isCampusIp) {
+        return { error: "You are not connected to the Campus Network." };
+    }
+
+    // 7B. Non-campus IP: enforce 1-student-per-IP-per-session.
+    //     Prevents "mobile hotspot sharing" proxy attacks where student A shares
+    //     their hotspot so student B can appear to be in the same location.
+    if (!isCampusIp && ip !== "unknown" && !isGuest) {
         const ipUsedByOther = await prisma.attendance.findFirst({
             where: {
-                sessionId: sessionId,
+                sessionId,
                 ipAddress: ip,
-                studentId: { not: student.id }
+                studentId: { not: student.id },
             },
-            include: { student: { include: { user: true } } }
+            select: { id: true },
         });
 
         if (ipUsedByOther) {
-            return { error: `Network Conflict: This IP is already associated with another student (${ipUsedByOther.student.user.name}). If you are using a Hotspot or VPN, please disable it.` };
+            return {
+                error:
+                    "Network Conflict: This IP address is already associated with another student. " +
+                    "If you are sharing a mobile hotspot or VPN, please disable it.",
+            };
         }
     }
-    */
 
-    const isGuest = session.user.role === "GUEST";
+    // ── Gate 8: Anti-Proxy Device Verification ────────────────────────────────
+    // Guests are exempt — they are event visitors without a registered device.
+    if (!isGuest) {
+        // 8.0 Ensure the client actually sent a fingerprint
+        if (!deviceHash || deviceHash.trim() === "") {
+            return { error: "Device fingerprint missing. Please refresh the page and try again." };
+        }
 
-    // --- TEMPORARILY DISABLED DEVICE VERIFICATION ---
-    /*
-    let isProxy = false;
-    // Atomic Device Binding to prevent Race Conditions
-    let storedHash = student.deviceHash;
-    let storedId = student.deviceId;
-
-    if (!storedHash || !storedId) {
-        // Try to bind atomically
-        const result = await prisma.student.updateMany({
+        // 8.1 GLOBAL OWNERSHIP CHECK
+        //     Blocks a device (by hardware hash OR sticky cookie ID) that is already
+        //     registered to a *different* student.  This catches:
+        //       – Friend's phone: same deviceHash → blocked
+        //       – Shared browser session: same device_id cookie → blocked
+        const deviceOwner = await prisma.student.findFirst({
             where: {
-                id: student.id,
-                OR: [{ deviceHash: null }, { deviceId: null }]
+                OR: [
+                    { deviceHash: deviceHash },
+                    { deviceId: deviceId },
+                ],
+                id: { not: student.id },
             },
-            data: { deviceHash, deviceId }
+            select: { id: true, deviceId: true, user: { select: { email: true } } },
         });
 
-        if (result.count === 1) {
-            // We successfully bound it
-            storedHash = deviceHash;
-            storedId = deviceId;
-        } else {
-            // Already bound by parallel request. Re-fetch current state.
-            const refreshed = await prisma.student.findUnique({ where: { id: student.id } });
-            if (refreshed) {
-                storedHash = refreshed.deviceHash;
-                storedId = refreshed.deviceId;
-            }
+        if (deviceOwner) {
+            const matchType = deviceOwner.deviceId === deviceId
+                ? `STICKY_ID:${deviceId}`
+                : `HW_HASH:${deviceHash.slice(0, 8)}...`;
+
+            console.warn(
+                `[Proxy] Student ${student.user.email} using device owned by` +
+                ` ${deviceOwner.user.email} — match: ${matchType}`
+            );
+
+            await logProxyAttempt(student.id, sessionId, matchType, deviceOwner.id);
+            return { error: "Device Verification Failed! This device is linked to another account." };
         }
-    }
 
-    if (!isGuest && (storedHash !== deviceHash || storedId !== deviceId)) {
-        isProxy = true;
-    }
+        // 8.2 PER-STUDENT DEVICE BINDING
+        //     First time the student marks attendance → atomically bind their device.
+        //     Using deviceHash as the primary key for binding (hardware fingerprint
+        //     is more stable than a cookie that can be cleared).
+        let storedHash = student.deviceHash;
+        let storedId = student.deviceId;
 
-    if (isProxy) {
-        // Upsert Proxy Attempt
-        const existingProxy = await prisma.proxyAttempt.findFirst({
-            where: {
-                studentId: student.id,
-                sessionId: sessionId
-            }
-        });
+        if (!storedHash) {
+            // Attempt atomic bind to prevent two simultaneous scans from double-binding.
+            const result = await prisma.student.updateMany({
+                where: { id: student.id, deviceHash: null },
+                data: { deviceHash, deviceId },
+            });
 
-        if (existingProxy) {
-            await prisma.proxyAttempt.update({
-                where: { id: existingProxy.id },
-                data: {
-                    attemptedHash: `HASH:${deviceHash}|ID:${deviceId}`,
-                    timestamp: new Date()
+            if (result.count === 1) {
+                // Successfully bound — use the values we just wrote.
+                storedHash = deviceHash;
+                storedId = deviceId;
+            } else {
+                // Race: another request beat us to it — re-read the winner's values.
+                const refreshed = await prisma.student.findUnique({
+                    where: { id: student.id },
+                });
+                if (refreshed) {
+                    storedHash = refreshed.deviceHash;
+                    storedId = refreshed.deviceId;
                 }
-            });
-        } else {
-            await prisma.proxyAttempt.create({
-                data: {
-                    studentId: student.id,
-                    sessionId: sessionId,
-                    attemptedHash: `HASH:${deviceHash}|ID:${deviceId}`,
-                },
+            }
+        }
+
+        // 8.3 MISMATCH CHECK
+        //     Hardware fingerprint is the decisive signal.
+        //     A mismatched hash means the student is on a different physical device → proxy.
+        if (storedHash && storedHash !== deviceHash) {
+            const logHash =
+                `HASH_MISMATCH | expected=${storedHash.slice(0, 8)}... ` +
+                `got=${deviceHash.slice(0, 8)}...`;
+
+            console.warn(`[Proxy] ${student.user.email}: ${logHash}`);
+            await logProxyAttempt(student.id, sessionId, logHash);
+            return {
+                error: "Device Verification Failed! Please use your registered device and browser.",
+            };
+        }
+
+        // 8.4 COOKIE RE-SYNC
+        //     If the hardware hash matches but the cookie ID changed (student cleared
+        //     browser data), silently update the stored ID — no proxy block.
+        //     This avoids locking students out for a harmless cache clear.
+        if (storedId && storedId !== deviceId && storedHash === deviceHash) {
+            await prisma.student.update({
+                where: { id: student.id },
+                data: { deviceId },
             });
         }
-        return { error: "Device Verification Failed! Please use your registered device and browser." };
     }
-    */
 
-    // 7. Check if already marked (Moved AFTER device verification)
+    // ── Gate 9: Duplicate Attendance ──────────────────────────────────────────
     const existingAttendance = await prisma.attendance.findFirst({
-        where: {
-            studentId: student.id,
-            sessionId: sessionId,
-        },
+        where: { studentId: student.id, sessionId },
     });
 
     if (existingAttendance) {
         return { error: "Attendance already marked", success: true };
     }
 
-    // 7. Mark Attendance
+    // ── Write: Mark Attendance ────────────────────────────────────────────────
     await prisma.attendance.create({
         data: {
             studentId: student.id,
-            sessionId: sessionId,
-            userAgent: userAgent,
+            sessionId,
+            userAgent,
             ipAddress: ip,
         },
     });
-
-    // Real-time update - REMOVED
-
 
     revalidatePath("/student");
     const name = dbSession.subject?.name || dbSession.event?.name || "Unknown Session";
     return { success: true, name };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// getSessionAttendance
+// Used by faculty/admin to pull the full attendance list for a session.
+// ─────────────────────────────────────────────────────────────────────────────
 export async function getSessionAttendance(sessionId: number) {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "FACULTY")) {
+    if (
+        !session ||
+        (session.user.role !== "ADMIN" && session.user.role !== "FACULTY")
+    ) {
         return { error: "Unauthorized" };
     }
 
@@ -333,13 +357,13 @@ export async function getSessionAttendance(sessionId: number) {
                         select: {
                             name: true,
                             email: true,
-                            username: true
-                        }
-                    }
-                }
-            }
+                            username: true,
+                        },
+                    },
+                },
+            },
         },
-        orderBy: { timestamp: "desc" }
+        orderBy: { timestamp: "desc" },
     });
 
     return { success: true, attendances };

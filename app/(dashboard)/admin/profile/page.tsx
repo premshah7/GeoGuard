@@ -39,8 +39,10 @@ export default async function ProfilePage() {
     return (
         <div className="max-w-4xl mx-auto space-y-10 animate-slide-up pb-10">
             {/* Header / Hero Section */}
-            <div className="relative h-48 rounded-3xl bg-gradient-to-r from-primary to-primary/60 overflow-hidden shadow-2xl">
-                <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
+            <div className="relative">
+                <div className="relative h-48 rounded-3xl bg-gradient-to-r from-primary to-primary/60 overflow-hidden shadow-2xl">
+                    <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
+                </div>
                 <div className="absolute -bottom-16 left-10 flex items-end gap-6">
                     <div className="relative group">
                         <div className="w-40 h-40 rounded-3xl bg-card border-8 border-background shadow-2xl flex items-center justify-center overflow-hidden">

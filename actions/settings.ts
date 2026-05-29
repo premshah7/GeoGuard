@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function getCurrentIp() {
     const headerList = await headers();
@@ -24,7 +26,8 @@ export async function getSystemSettings() {
         settings = await prisma.systemSettings.create({
             data: {
                 allowedIpPrefix: "",
-                isIpCheckEnabled: false
+                isIpCheckEnabled: false,
+                sessionAutoEndMinutes: 60,
             }
         });
     }
@@ -34,26 +37,28 @@ export async function getSystemSettings() {
 
 export async function updateSystemSettings(formData: FormData) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session || !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
+            return { error: "Unauthorized" };
+        }
+
         const allowedIpPrefix = formData.get("allowedIpPrefix") as string;
         const isIpCheckEnabled = formData.get("isIpCheckEnabled") === "on";
+        const rawMinutes = parseInt(formData.get("sessionAutoEndMinutes") as string);
+        const sessionAutoEndMinutes = Number.isFinite(rawMinutes) && rawMinutes >= 0
+            ? rawMinutes
+            : 60;
 
-        // Upsert ensures we update if exists, create if not (though getSystemSettings ensures existence usually)
         const existing = await prisma.systemSettings.findFirst();
 
         if (existing) {
             await prisma.systemSettings.update({
                 where: { id: existing.id },
-                data: {
-                    allowedIpPrefix,
-                    isIpCheckEnabled
-                }
+                data: { allowedIpPrefix, isIpCheckEnabled, sessionAutoEndMinutes }
             });
         } else {
             await prisma.systemSettings.create({
-                data: {
-                    allowedIpPrefix,
-                    isIpCheckEnabled
-                }
+                data: { allowedIpPrefix, isIpCheckEnabled, sessionAutoEndMinutes }
             });
         }
 

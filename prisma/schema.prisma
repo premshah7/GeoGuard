@@ -134,9 +134,10 @@ model ProxyAttempt {
 }
 
 model SystemSettings {
-  id               Int     @id @default(autoincrement())
-  allowedIpPrefix  String  @default("")
-  isIpCheckEnabled Boolean @default(false)
+  id                    Int     @id @default(autoincrement())
+  allowedIpPrefix       String  @default("")
+  isIpCheckEnabled      Boolean @default(false)
+  sessionAutoEndMinutes Int     @default(60)
 }
 
 // ─── Events System ───────────────────────────────────────────────────

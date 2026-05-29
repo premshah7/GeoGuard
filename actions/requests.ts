@@ -41,7 +41,8 @@ export async function approveDeviceReset(studentId: number) {
             where: { id: studentId },
             data: {
                 deviceHash: null,
-                isDeviceResetRequested: false
+                deviceId: null,          // Clear both so re-bind starts fresh
+                isDeviceResetRequested: false,
             }
         });
 

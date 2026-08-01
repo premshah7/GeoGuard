@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Code2, ArrowLeft, Github, Linkedin, Mail, ExternalLink, Cpu } from "lucide-react";
+import { Code2, Github, Linkedin, Mail, ExternalLink, Cpu } from "lucide-react";
+import Navbar from "@/components/landing/Navbar";
 
 export default async function DeveloperPage() {
     const headersList = await headers();
@@ -15,24 +16,7 @@ export default async function DeveloperPage() {
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col">
             {/* Navbar */}
-            <nav className="border-b border-border bg-card/80 backdrop-blur-sm p-5 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <ArrowLeft className="w-5 h-5 text-muted-foreground group-hover:-translate-x-1 transition-transform" />
-                            <span className="font-medium text-muted-foreground group-hover:text-foreground transition-colors">Back to Home</span>
-                        </Link>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                            <Code2 className="w-5 h-5 text-primary-foreground" />
-                        </div>
-                        <span className="text-xl font-bold text-foreground">
-                            ScanX Dev
-                        </span>
-                    </div>
-                </div>
-            </nav>
+            <Navbar />
 
             <main className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-16">
 
